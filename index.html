@@ -1,0 +1,2398 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>内购商城收款系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+      * {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      html,
+      body {
+        height: 100%;
+        overflow: hidden;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif;
+        background: #f0f4ff;
+        overscroll-behavior: none;
+      }
+
+      #app-shell {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        height: 100dvh;
+        max-width: 480px;
+        margin: 0 auto;
+        background: #f0f4ff;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .page-content {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-y: contain;
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+      }
+
+      ::-webkit-scrollbar {
+        width: 0;
+      }
+
+      .bottom-nav {
+        display: flex;
+        background: #fff;
+        border-top: 1px solid #e8edf5;
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, .06);
+        position: relative;
+        z-index: 50;
+        flex-shrink: 0;
+      }
+
+      .nav-item {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 8px 0 6px;
+        cursor: pointer;
+        transition: all .15s;
+        position: relative;
+      }
+
+      .nav-item.active .nav-icon {
+        color: #2563eb;
+      }
+
+      .nav-item.active .nav-label {
+        color: #2563eb;
+        font-weight: 600;
+      }
+
+      .nav-item.active::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 32px;
+        height: 3px;
+        background: #2563eb;
+        border-radius: 0 0 3px 3px;
+      }
+
+      .nav-icon {
+        color: #94a3b8;
+        font-size: 20px;
+        margin-bottom: 2px;
+        transition: all .15s;
+      }
+
+      .nav-label {
+        font-size: 10px;
+        color: #94a3b8;
+        transition: all .15s;
+      }
+
+      .status-bar {
+        background: linear-gradient(135deg, #1e40af 0%, #2563eb 50%, #4f46e5 100%);
+        padding: 12px 16px 14px;
+        flex-shrink: 0;
+      }
+
+      .card {
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, .06);
+      }
+
+      .num-key {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 52px;
+        border-radius: 12px;
+        font-size: 20px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all .1s;
+        user-select: none;
+        -webkit-user-select: none;
+        background: #f8faff;
+        color: #1e293b;
+        border: 1px solid #e8edf5;
+      }
+
+      .num-key:active {
+        transform: scale(.94);
+        background: #dbeafe;
+      }
+
+      .num-key.delete-key {
+        background: #fff5f5;
+        color: #ef4444;
+        border-color: #fee2e2;
+      }
+
+      .num-key.delete-key:active {
+        background: #fee2e2;
+      }
+
+      .num-key.plus-key:active {
+        background: #dbeafe;
+        transform: scale(.94);
+      }
+
+      .amount-display {
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -1px;
+      }
+
+      .spin {
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        from {
+          transform: rotate(0deg);
+        }
+
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .fade-in {
+        animation: fadeIn .2s ease;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(6px);
+        }
+
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .slide-up {
+        animation: slideUp .25s cubic-bezier(.4, 0, .2, 1);
+      }
+
+      @keyframes slideUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .modal-overlay {
+        animation: overlayIn .18s ease;
+      }
+
+      @keyframes overlayIn {
+        from {
+          opacity: 0;
+        }
+
+        to {
+          opacity: 1;
+        }
+      }
+
+      .bottom-sheet {
+        animation: sheetUp .3s cubic-bezier(.4, 0, .2, 1);
+      }
+
+      @keyframes sheetUp {
+        from {
+          transform: translateY(100%);
+        }
+
+        to {
+          transform: translateY(0);
+        }
+      }
+
+      input,
+      select {
+        -webkit-appearance: none;
+        appearance: none;
+      }
+
+      input:focus,
+      select:focus {
+        outline: none;
+      }
+
+      .tag-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 8px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 600;
+      }
+
+      .page-section {
+        display: none;
+      }
+
+      .page-section.active {
+        display: block;
+      }
+
+      #login-screen {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        height: 100dvh;
+        background: linear-gradient(160deg, #1e40af 0%, #2563eb 40%, #4f46e5 100%);
+        overflow: hidden;
+      }
+
+      .input-field {
+        width: 100%;
+        padding: 13px 16px;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 12px;
+        font-size: 15px;
+        background: #fff;
+        color: #1e293b;
+        transition: border-color .15s, box-shadow .15s;
+      }
+
+      .input-field:focus {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, .12);
+      }
+
+      .btn-primary {
+        width: 100%;
+        padding: 14px;
+        background: linear-gradient(135deg, #2563eb, #4f46e5);
+        color: white;
+        border: none;
+        border-radius: 14px;
+        font-size: 16px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all .15s;
+        box-shadow: 0 4px 14px rgba(37, 99, 235, .35);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+
+      .btn-primary:active {
+        transform: scale(.98);
+        box-shadow: 0 2px 8px rgba(37, 99, 235, .25);
+      }
+
+      .btn-danger {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        box-shadow: 0 4px 14px rgba(239, 68, 68, .3);
+      }
+
+      .btn-success {
+        background: linear-gradient(135deg, #10b981, #059669);
+        box-shadow: 0 4px 14px rgba(16, 185, 129, .3);
+      }
+
+      #toast {
+        position: fixed;
+        top: 52px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 9999;
+        pointer-events: none;
+        white-space: nowrap;
+      }
+
+      .sum-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 7px 12px;
+        background: #f8faff;
+        border-radius: 10px;
+        margin-bottom: 5px;
+        border: 1px solid #e8edf5;
+      }
+
+      .sum-item-badge {
+        font-size: 11px;
+        padding: 1px 7px;
+        border-radius: 20px;
+        font-weight: 600;
+      }
+
+      /* 内联删除确认 */
+      .inline-confirm {
+        animation: slideDown .18s cubic-bezier(.4, 0, .2, 1);
+        overflow: hidden;
+      }
+
+      .inline-edit-pwd {
+        animation: slideDown .18s cubic-bezier(.4, 0, .2, 1);
+        overflow: hidden;
+      }
+
+      @keyframes slideDown {
+        from {
+          opacity: 0;
+          max-height: 0;
+        }
+
+        to {
+          opacity: 1;
+          max-height: 120px;
+        }
+      }
+
+      /* 全屏支付弹窗 */
+      #pay-modal {
+        position: fixed;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: 480px;
+        height: 100vh;
+        height: 100dvh;
+        z-index: 200;
+        display: flex;
+        flex-direction: column;
+        background: #fff;
+        overflow: hidden;
+      }
+
+      .pay-modal-inner {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      .pay-modal-header {
+        background: linear-gradient(135deg, #1e40af 0%, #2563eb 60%, #4f46e5 100%);
+        padding: 10px 20px 16px;
+        padding-top: max(env(safe-area-inset-top, 0px), 10px);
+        flex-shrink: 0;
+        position: relative;
+      }
+
+      .pay-modal-body {
+        flex: 1;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        padding: 0 10px;
+        overscroll-behavior-y: contain;
+      }
+
+      .pay-modal-footer {
+        flex-shrink: 0;
+        padding: 12px 16px;
+        padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+        background: #fff;
+        border-top: 1px solid #f1f5f9;
+        box-shadow: 0 -4px 16px rgba(0, 0, 0, .06);
+      }
+    </style>
+  </head>
+  <body>
+
+    <!-- Toast -->
+    <div id="toast" class="hidden">
+      <div id="toast-inner" class="flex items-center gap-2 px-4 py-2.5 rounded-2xl shadow-xl text-sm font-semibold text-white">
+        <span id="toast-icon"></span><span id="toast-msg"></span>
+      </div>
+    </div>
+
+    <!-- Confirm Modal（仅用于退出登录等非删除场景）-->
+    <div id="confirm-modal" class="fixed inset-0 z-[90] hidden" style="max-width:480px;left:50%;transform:translateX(-50%);">
+      <div class="absolute inset-0 bg-black/40 backdrop-blur-sm modal-overlay"></div>
+      <div class="relative flex items-end justify-center h-full pb-8 px-4">
+        <div class="bottom-sheet bg-white rounded-2xl w-full p-5 shadow-2xl">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="bg-red-100 rounded-full p-2.5">
+              <svg class="h-5 w-5 text-red-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+              </svg>
+            </div>
+            <h3 id="confirm-title" class="text-base font-bold text-gray-900">操作确认</h3>
+          </div>
+          <p id="confirm-text" class="text-sm text-gray-500 mb-5 leading-relaxed"></p>
+          <div class="grid grid-cols-2 gap-3">
+            <button id="confirm-cancel" class="py-3 rounded-xl text-sm font-semibold bg-gray-100 text-gray-700">取消</button>
+            <button id="confirm-ok" class="py-3 rounded-xl text-sm font-semibold bg-red-600 text-white">确认</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pay Modal 全屏覆盖层 -->
+    <div id="pay-modal" class="hidden" style="display:none !important;">
+      <div class="pay-modal-inner">
+        <!-- 顶部金额区 -->
+        <div class="pay-modal-header">
+          <button onclick="closePayModal()" class="absolute right-4 bg-white/20 rounded-full p-1.5" style="top: calc(max(env(safe-area-inset-top,0px), 10px));">
+            <svg class="h-4 w-4 text-white" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <p class="text-blue-200 text-xs text-center mb-0.5 mt-0.5">实付总金额</p>
+          <div class="flex items-center justify-center gap-1 mb-0.5">
+            <span class="text-white text-2xl font-light">¥</span>
+            <span id="pay-modal-amount" class="text-white font-bold amount-display" style="font-size:40px;line-height:1.1;">0</span>
+          </div>
+          <p id="pay-modal-operator" class="text-blue-300 text-xs text-center">收款人：-</p>
+        </div>
+
+        <!-- 中间滚动区 -->
+        <div class="pay-modal-body">
+          <!-- 明细列表（折叠紧凑） -->
+          <div id="pay-modal-detail" class="pt-2 pb-1"></div>
+
+          <!-- 二维码区（放大优先） -->
+          <div id="pay-modal-qr" class="relative flex items-center justify-center bg-gray-50 rounded-2xl border border-gray-100 overflow-hidden mb-3" style="min-height:360px;">
+            <div class="absolute inset-0 pointer-events-none z-10">
+              <div class="absolute top-3 left-3 w-9 h-9 border-t-4 border-l-4 border-blue-500 rounded-tl-lg"></div>
+              <div class="absolute top-3 right-3 w-9 h-9 border-t-4 border-r-4 border-blue-500 rounded-tr-lg"></div>
+              <div class="absolute bottom-3 left-3 w-9 h-9 border-b-4 border-l-4 border-blue-500 rounded-bl-lg"></div>
+              <div class="absolute bottom-3 right-3 w-9 h-9 border-b-4 border-r-4 border-blue-500 rounded-br-lg"></div>
+            </div>
+            <div id="pay-modal-qr-inner" class="relative z-0 flex items-center justify-center w-full h-full p-3">
+              <div class="text-center">
+                <svg class="h-6 w-6 spin mx-auto text-blue-400" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                </svg>
+                <p class="text-sm text-gray-400 mt-2">加载收款码...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 底部按钮区 -->
+        <div class="pay-modal-footer">
+          <div class="grid grid-cols-2 gap-3">
+            <button onclick="closePayModal()" class="py-3 rounded-2xl text-sm font-semibold bg-gray-100 text-gray-600">取消</button>
+            <button onclick="confirmPayment()" id="confirm-pay-btn" class="btn-primary btn-success py-3 rounded-2xl text-sm" style="border-radius:16px;">
+              <span id="confirm-pay-spinner" class="hidden">
+                <svg class="h-5 w-5 spin" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                </svg>
+              </span>
+              <svg id="confirm-pay-icon" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              <span id="confirm-pay-text">确认收款</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Login Screen ===== -->
+    <div id="login-screen">
+      <div class="flex-1 flex flex-col items-center justify-center px-6 pt-10">
+        <div class="mb-8 text-center">
+          <div class="inline-flex items-center justify-center bg-white/20 backdrop-blur-sm rounded-3xl p-5 mb-5 shadow-xl">
+            <svg class="h-10 w-10 text-white" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h1 class="text-3xl font-bold text-white mb-1">内购商城收款系统</h1>
+          <p class="text-blue-200 text-sm">安全 · 便捷 · 高效</p>
+        </div>
+      </div>
+      <div class="bg-white rounded-t-3xl px-6 pt-7 pb-10 shadow-2xl" style="padding-bottom: calc(2.5rem + env(safe-area-inset-bottom,0px));">
+        <h2 class="text-xl font-bold text-gray-900 mb-1">登录账号</h2>
+        <p class="text-sm text-gray-400 mb-5">请选择账号类型并输入凭据</p>
+        <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
+          <div class="grid grid-cols-2 gap-3">
+            <label id="role-main-label" onclick="selectLoginRole('主账号')" class="flex items-center gap-2.5 p-3.5 border-2 border-blue-500 rounded-2xl bg-blue-50 cursor-pointer">
+              <input type="radio" name="login-role" value="主账号" class="hidden" checked />
+              <div id="role-main-dot" class="w-5 h-5 rounded-full border-2 border-blue-500 flex items-center justify-center flex-shrink-0"><span class="w-2.5 h-2.5 rounded-full bg-blue-500 block"></span></div>
+              <div>
+                <p class="text-xs font-bold text-blue-700">主账号</p>
+                <p class="text-xs text-blue-400">管理员</p>
+              </div>
+            </label>
+            <label id="role-sub-label" onclick="selectLoginRole('子账号')" class="flex items-center gap-2.5 p-3.5 border-2 border-gray-200 rounded-2xl cursor-pointer">
+              <input type="radio" name="login-role" value="子账号" class="hidden" />
+              <div id="role-sub-dot" class="w-5 h-5 rounded-full border-2 border-gray-300 flex items-center justify-center flex-shrink-0"><span class="w-2.5 h-2.5 rounded-full bg-transparent block"></span></div>
+              <div>
+                <p class="text-xs font-bold text-gray-600">子账号</p>
+                <p class="text-xs text-gray-400">收款员</p>
+              </div>
+            </label>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-500 mb-1.5 ml-1">账号</label>
+            <input type="text" id="login-username" placeholder="请输入账号" autocomplete="username" required class="input-field" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-500 mb-1.5 ml-1">密码</label>
+            <div class="relative">
+              <input type="password" id="login-password" placeholder="请输入密码" autocomplete="current-password" required class="input-field pr-12" />
+              <button type="button" onclick="toggleLoginPwd()" class="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 text-gray-400">
+                <svg id="login-eye" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          <button type="submit" id="login-btn" class="btn-primary mt-2" style="margin-top:20px;">
+            <span id="login-spinner" class="hidden"><svg class="h-5 w-5 spin" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+              </svg></span>
+            <span id="login-text">登 录</span>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- ===== Main App Shell ===== -->
+    <div id="app-shell" class="hidden">
+      <div class="status-bar">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <div class="bg-white/20 rounded-xl p-1.5">
+              <svg class="h-4 w-4 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <p class="text-white font-bold text-sm leading-tight">内购商城收款系统</p>
+              <p class="text-blue-200 text-xs leading-tight" id="header-username">-</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <span id="header-role-badge" class="text-xs px-2.5 py-1 rounded-full font-semibold"></span>
+            <button onclick="handleLogout()" class="bg-white/15 rounded-xl px-2.5 py-1.5 flex items-center gap-1">
+              <svg class="h-3.5 w-3.5 text-white/80" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              <span class="text-white/80 text-xs">退出</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="page-content" id="main-page-content">
+
+        <!-- ===== 收款 Page ===== -->
+        <div id="page-payment" class="page-section active fade-in">
+          <div class="mx-3 mt-3 space-y-2.5">
+
+            <!-- ① 收款人 + 今日统计 -->
+            <div class="card px-4 py-3">
+              <div class="flex items-center justify-between mb-2.5">
+                <div class="flex items-center gap-2">
+                  <div class="bg-blue-100 rounded-full p-1.5">
+                    <svg class="h-3.5 w-3.5 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </div>
+                  <span class="text-xs text-gray-500">收款人</span>
+                  <span id="operator-name" class="text-sm font-bold text-blue-700"></span>
+                </div>
+                <div id="operator-select-wrap" class="hidden">
+                  <select id="operator-select" onchange="onOperatorChange()" class="text-xs border border-gray-200 rounded-lg px-2 py-1.5 text-gray-700 bg-gray-50" style="outline:none;max-width:130px;"></select>
+                </div>
+              </div>
+              <div class="flex gap-2.5">
+                <div class="flex-1 bg-emerald-50 rounded-xl px-3 py-2.5 text-center">
+                  <p class="text-xs text-emerald-600 font-medium">今日笔数</p>
+                  <p id="today-count" class="text-xl font-bold text-emerald-700 mt-0.5">-</p>
+                </div>
+                <div class="flex-1 bg-blue-50 rounded-xl px-3 py-2.5 text-center">
+                  <p class="text-xs text-blue-600 font-medium">今日总额</p>
+                  <p id="today-total" class="text-xl font-bold text-blue-700 mt-0.5">-</p>
+                </div>
+                <button onclick="loadTodayStats()" class="flex-shrink-0 bg-gray-50 rounded-xl px-2.5 py-2 flex items-center justify-center border border-gray-100">
+                  <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- ② 当前输入金额 + 折扣 -->
+            <div class="card overflow-hidden">
+              <div class="bg-gradient-to-br from-blue-600 to-indigo-700 px-5 pt-4 pb-4">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-blue-200 text-xs font-medium">当前输入金额</span>
+                  <div class="flex items-center gap-1.5 bg-white/15 rounded-xl px-2.5 py-1.5">
+                    <span class="text-blue-200 text-xs">折扣</span>
+                    <input type="number" id="discount-input" value="100" min="1" max="100" step="1" oninput="onDiscountChange()" class="w-10 bg-transparent text-white text-xs font-bold text-center" style="outline:none;caret-color:#facc15;" />
+                    <span class="text-white text-xs">%</span>
+                  </div>
+                </div>
+                <div class="flex items-end gap-1.5">
+                  <span class="text-white/70 text-2xl font-light mb-1">¥</span>
+                  <span id="amount-display" class="amount-display text-white font-bold" style="font-size:48px;line-height:1.1;">0</span>
+                </div>
+                <div id="current-discount-tip" class="hidden mt-1">
+                  <span class="text-yellow-300 text-xs font-semibold">当前折扣 <span id="current-discount-val">100</span>%，折后 ¥<span id="current-discounted-val">0</span></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- ③ 数字键盘 -->
+            <div class="card p-3">
+              <div class="grid gap-2" style="grid-template-columns: repeat(4, 1fr);">
+                <div class="num-key" onclick="numInput('1')">1</div>
+                <div class="num-key" onclick="numInput('2')">2</div>
+                <div class="num-key" onclick="numInput('3')">3</div>
+                <div class="num-key plus-key" onclick="addCurrentAmount()" style="background:#eff6ff;color:#2563eb;border-color:#bfdbfe;font-size:28px;font-weight:700;grid-row:span 2;">+</div>
+                <div class="num-key" onclick="numInput('4')">4</div>
+                <div class="num-key" onclick="numInput('5')">5</div>
+                <div class="num-key" onclick="numInput('6')">6</div>
+                <div class="num-key" onclick="numInput('7')">7</div>
+                <div class="num-key" onclick="numInput('8')">8</div>
+                <div class="num-key" onclick="numInput('9')">9</div>
+                <div class="num-key delete-key" onclick="numDelete()">
+                  <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M3 12l6.414 6.414a2 2 0 001.414.586H19a2 2 0 002-2V7a2 2 0 00-2-2h-8.172a2 2 0 00-1.414.586L3 12z" />
+                  </svg>
+                </div>
+                <div class="num-key" onclick="numInput('.')">.</div>
+                <div class="num-key" onclick="numInput('0')">0</div>
+                <div class="num-key text-sm text-gray-500 border-0 bg-gray-100" style="font-weight:600;" onclick="numClear()">清空</div>
+              </div>
+            </div>
+
+            <!-- ④ 累计明细区 -->
+            <div class="card px-4 pt-3 pb-3">
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-bold text-gray-500">累计明细</span>
+                  <span id="items-badge" class="hidden tag-badge bg-blue-50 text-blue-600 border border-blue-100" style="font-size:10px;">0项</span>
+                </div>
+                <button onclick="clearAllItems()" id="clear-items-btn" class="hidden text-xs text-red-400 font-semibold px-2 py-1 rounded-lg bg-red-50 border border-red-100 active:bg-red-100">清空</button>
+              </div>
+              <div id="items-list" class="hidden space-y-1.5 mb-2 max-h-40 overflow-y-auto"></div>
+              <div id="total-row" class="hidden flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl px-3 py-2.5 border border-blue-100">
+                <div class="flex items-center gap-1.5">
+                  <svg class="h-4 w-4 text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 2.5 2 2.5-2 3.5 2z" />
+                  </svg>
+                  <span class="text-xs font-bold text-blue-700">实付总额</span>
+                </div>
+                <span class="text-lg font-bold text-blue-700 amount-display">¥ <span id="grand-total-display">0.00</span></span>
+              </div>
+              <div id="items-empty-tip" class="text-xs text-gray-300 text-center py-2">点击 + 可累加多笔金额</div>
+            </div>
+
+            <!-- ⑤ 请付款按钮 -->
+            <div class="pb-3">
+              <button onclick="openPayModal()" class="btn-primary w-full" style="height:56px;font-size:16px;font-weight:700;border-radius:16px;">
+                <svg class="h-5 w-5 mr-1" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                请付款
+              </button>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ===== 记录 Page ===== -->
+        <div id="page-records" class="page-section fade-in">
+          <div class="mx-3 mt-3 mb-3">
+            <div class="card p-4">
+              <p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">筛选条件</p>
+              <div class="grid grid-cols-2 gap-2 mb-2">
+                <div>
+                  <label class="block text-xs text-gray-400 mb-1">开始日期</label>
+                  <input type="date" id="rec-start-date" class="input-field text-sm py-2.5" />
+                </div>
+                <div>
+                  <label class="block text-xs text-gray-400 mb-1">结束日期</label>
+                  <input type="date" id="rec-end-date" class="input-field text-sm py-2.5" />
+                </div>
+              </div>
+              <div id="rec-operator-wrap" class="hidden mb-3">
+                <label class="block text-xs text-gray-400 mb-1">收款人筛选</label>
+                <select id="rec-operator-filter" class="input-field text-sm py-2.5 text-gray-700">
+                  <option value="">全部收款人</option>
+                </select>
+              </div>
+              <button onclick="loadRecords()" class="btn-primary py-3 text-sm">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                  <circle cx="11" cy="11" r="8" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-4.35-4.35" />
+                </svg>
+                查询记录
+              </button>
+            </div>
+          </div>
+          <div id="records-summary" class="hidden mx-3 mb-3">
+            <div class="card px-4 py-3 flex gap-3">
+              <div class="flex-1 text-center">
+                <p class="text-xs text-gray-400">合计笔数</p>
+                <p class="text-lg font-bold text-gray-800 mt-0.5" id="sum-count">0</p>
+              </div>
+              <div class="w-px bg-gray-100"></div>
+              <div class="flex-1 text-center">
+                <p class="text-xs text-gray-400">合计金额</p>
+                <p class="text-lg font-bold text-blue-700 mt-0.5" id="sum-total">¥0</p>
+              </div>
+            </div>
+          </div>
+          <div class="mx-3 mb-3">
+            <div class="card overflow-hidden">
+              <div id="records-loading" class="hidden p-10 text-center">
+                <svg class="h-6 w-6 spin mx-auto text-blue-400" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                </svg>
+                <p class="text-xs text-gray-400 mt-2">加载中...</p>
+              </div>
+              <div id="records-list">
+                <div class="p-10 text-center text-gray-400 text-sm">请选择日期后查询</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== 收款码 Page ===== -->
+        <div id="page-qrcode" class="page-section fade-in">
+          <div class="mx-3 mt-3 mb-3">
+            <div class="card p-5">
+              <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2">
+                  <div class="bg-emerald-100 rounded-xl p-2">
+                    <svg class="h-4 w-4 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                    </svg>
+                  </div>
+                  <h3 class="text-sm font-bold text-gray-800">收款二维码</h3>
+                </div>
+                <span id="qr-sync-status" class="flex items-center gap-1.5 text-xs text-gray-400">
+                  <span id="qr-sync-dot" class="inline-block w-1.5 h-1.5 rounded-full bg-gray-300"></span>
+                  <span id="qr-sync-text">等待同步...</span>
+                </span>
+              </div>
+              <div id="current-qr-display" class="min-h-[220px] flex items-center justify-center bg-gray-50 rounded-2xl border border-gray-100 p-4">
+                <div class="text-center">
+                  <svg class="h-6 w-6 spin mx-auto text-blue-400" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                  </svg>
+                  <p class="text-xs text-gray-400 mt-2">正在加载收款码...</p>
+                </div>
+              </div>
+              <p class="text-xs text-gray-400 text-center mt-3">每10秒自动同步 · 请展示给顾客扫码</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== 账号管理 Page ===== -->
+        <div id="page-accounts" class="page-section fade-in">
+
+          <!-- 子账号：仅显示修改自己密码的区域 -->
+          <div id="sub-change-pwd-section" class="hidden mx-3 mt-3 mb-3">
+            <div class="card p-5">
+              <div class="flex items-center gap-3 mb-4">
+                <div class="bg-blue-100 rounded-2xl p-3">
+                  <svg class="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                </div>
+                <div>
+                  <p class="text-sm font-bold text-gray-900">修改登录密码</p>
+                  <p class="text-xs text-gray-400 mt-0.5" id="sub-pwd-username-tip">当前账号：-</p>
+                </div>
+              </div>
+              <form id="sub-change-pwd-form" onsubmit="handleSubChangePwd(event)" class="space-y-3">
+                <div>
+                  <label class="block text-xs text-gray-500 mb-1">当前密码</label>
+                  <div class="relative">
+                    <input type="password" id="sub-old-pwd" placeholder="请输入当前密码" required autocomplete="current-password" class="input-field text-sm py-2.5 pr-12" />
+                    <button type="button" onclick="toggleSubOldPwdEye()" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 p-1">
+                      <svg id="sub-old-eye" style="width:18px;height:18px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-xs text-gray-500 mb-1">新密码</label>
+                  <div class="relative">
+                    <input type="password" id="sub-new-pwd" placeholder="请输入新密码" required autocomplete="new-password" class="input-field text-sm py-2.5 pr-12" />
+                    <button type="button" onclick="toggleSubNewPwdEye()" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 p-1">
+                      <svg id="sub-new-eye" style="width:18px;height:18px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-xs text-gray-500 mb-1">确认新密码</label>
+                  <div class="relative">
+                    <input type="password" id="sub-confirm-pwd" placeholder="请再次输入新密码" required autocomplete="new-password" class="input-field text-sm py-2.5 pr-12" />
+                    <button type="button" onclick="toggleSubConfirmPwdEye()" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 p-1">
+                      <svg id="sub-confirm-eye" style="width:18px;height:18px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                <button type="submit" id="sub-pwd-submit-btn" class="btn-primary py-3.5 text-sm mt-1">
+                  <span id="sub-pwd-spinner" class="hidden"><svg class="h-4 w-4 spin" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                    </svg></span>
+                  <svg id="sub-pwd-icon" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span id="sub-pwd-submit-text">保存新密码</span>
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- 主账号：添加账号按钮 -->
+          <div id="main-acc-section" class="hidden">
+            <div class="mx-3 mt-3 mb-3">
+              <button id="acc-toggle-form-btn" onclick="toggleAccForm()" class="btn-primary py-3.5 text-sm">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                添加账号
+              </button>
+            </div>
+            <div id="acc-form-wrap" class="hidden mx-3 mb-3">
+              <div class="card p-4 fade-in">
+                <div class="flex items-center gap-2 mb-3">
+                  <div class="w-1 h-4 bg-blue-500 rounded-full"></div>
+                  <span class="text-sm font-bold text-gray-800">新建账号</span>
+                </div>
+                <form id="acc-add-form" onsubmit="handleAddAccount(event)" class="space-y-3">
+                  <div>
+                    <label class="block text-xs text-gray-500 mb-1">账号名称</label>
+                    <input type="text" id="acc-new-username" placeholder="请输入账号" required autocomplete="off" class="input-field text-sm py-2.5" />
+                  </div>
+                  <div>
+                    <label class="block text-xs text-gray-500 mb-1">密码</label>
+                    <div class="relative">
+                      <input type="password" id="acc-new-password" placeholder="请输入密码" required class="input-field text-sm py-2.5 pr-12" />
+                      <button type="button" onclick="toggleAccPwd()" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 p-1">
+                        <svg id="acc-eye-icon" style="width:18px;height:18px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="block text-xs text-gray-500 mb-1">账号类型</label>
+                    <select id="acc-new-type" class="input-field text-sm py-2.5 text-gray-700">
+                      <option value="子账号">👤 子账号（收款员）</option>
+                      <option value="主账号">⭐ 主账号（管理员）</option>
+                    </select>
+                  </div>
+                  <div class="grid grid-cols-2 gap-3 pt-1">
+                    <button type="button" onclick="cancelAccForm()" class="py-3 rounded-xl text-sm font-semibold bg-gray-100 text-gray-600">取消</button>
+                    <button type="submit" id="acc-submit-btn" class="btn-primary btn-success py-3 text-sm">
+                      <span id="acc-submit-spinner" class="hidden"><svg class="h-4 w-4 spin" fill="none" viewBox="0 0 24 24">
+                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                        </svg></span>
+                      <span id="acc-submit-text">创建账号</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+            <div class="mx-3 mb-3">
+              <div class="card p-3">
+                <div class="relative mb-2.5">
+                  <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <circle cx="11" cy="11" r="8" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-4.35-4.35" />
+                  </svg>
+                  <input type="text" id="acc-search" placeholder="搜索账号..." oninput="renderAccounts()" class="input-field pl-9 text-sm py-2.5" />
+                </div>
+                <div class="flex gap-2">
+                  <button onclick="setAccFilter('all')" id="acc-filter-all" class="flex-1 py-2 rounded-xl text-xs font-bold bg-blue-600 text-white">全部</button>
+                  <button onclick="setAccFilter('主账号')" id="acc-filter-main" class="flex-1 py-2 rounded-xl text-xs font-bold bg-gray-100 text-gray-600">主账号</button>
+                  <button onclick="setAccFilter('子账号')" id="acc-filter-sub" class="flex-1 py-2 rounded-xl text-xs font-bold bg-gray-100 text-gray-600">子账号</button>
+                </div>
+              </div>
+            </div>
+            <div class="mx-3 mb-4">
+              <div class="card overflow-hidden">
+                <div id="acc-list" class="hidden">
+                  <div class="p-10 text-center">
+                    <svg class="h-6 w-6 spin mx-auto text-blue-400" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                    </svg>
+                    <p class="text-xs text-gray-400 mt-2">加载中...</p>
+                  </div>
+                </div>
+                <div id="acc-footer" class="hidden px-4 py-2.5 border-t border-gray-50 bg-gray-50 flex gap-4 main-only-acc">
+                  <span class="text-xs text-gray-400">共 <strong class="text-gray-700" id="acc-total-count">0</strong> 个</span>
+                  <span class="text-xs text-gray-400">主账号 <strong class="text-purple-600" id="acc-main-count">0</strong></span>
+                  <span class="text-xs text-gray-400">子账号 <strong class="text-blue-600" id="acc-sub-count">0</strong></span>
+                </div>
+              </div>
+            </div>
+          </div><!-- /main-acc-section -->
+        </div>
+
+      </div>
+
+      <!-- Bottom Navigation -->
+      <div class="bottom-nav" id="bottom-nav">
+        <div class="nav-item active" id="nav-payment" onclick="switchPage('payment')">
+          <div class="nav-icon">
+            <svg style="width:22px;height:22px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+          </div>
+          <span class="nav-label">收款</span>
+        </div>
+        <div class="nav-item" id="nav-records" onclick="switchPage('records')">
+          <div class="nav-icon">
+            <svg style="width:22px;height:22px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+          </div>
+          <span class="nav-label">记录</span>
+        </div>
+        <div class="nav-item" id="nav-qrcode" onclick="switchPage('qrcode')">
+          <div class="nav-icon">
+            <svg style="width:22px;height:22px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+            </svg>
+          </div>
+          <span class="nav-label">收款码</span>
+        </div>
+        <div class="nav-item hidden" id="nav-accounts" onclick="switchPage('accounts')">
+          <div class="nav-icon">
+            <svg style="width:22px;height:22px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a4 4 0 00-5.356-3.712M9 20H4v-2a4 4 0 015.356-3.712M15 7a4 4 0 11-8 0 4 4 0 018 0zm6 13v-2a4 4 0 00-3-3.87" />
+            </svg>
+          </div>
+          <span class="nav-label">账号</span>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ================================================================
+      // API 配置
+      // ================================================================
+      const BASE_URL = 'https://yach-teable.zhiyinlou.com';
+      const TABLE_ID = 'tblDXvfPI1yj2ZIulLU';
+      const API_TOKEN = 'teable_acc6g5rEOhG66U7suwC_a9J6zIZnUECLf5gvuixh4wgtj4K5OQsdZpwaWk+bvmA=';
+      const FIELD = {
+        DATE: 'fldgRnZZe6RfVhhZc44',
+        AMOUNT: 'fldjGNaVFOcpBuSArR0',
+        DISCOUNT: 'fldz29R1JDw6TWbElUr',
+        ACCOUNT: 'fldzDkovdXrmfYNzEre'
+      };
+      const apiClient = axios.create({
+        baseURL: `${BASE_URL}/api/table/${TABLE_ID}`,
+        headers: {
+          'Authorization': `Bearer ${API_TOKEN}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      const ACCOUNT_TABLE_ID = 'tbl62Ty3JJxH1UNNdn1';
+      const ACCOUNT_API_TOKEN = 'teable_accNLz2ykhDyAiber5o_ZRecb4X+y4EF9Llg+XcptW0P+Sfu64r4yuRY/XNVB5A=';
+      const accountApiClient = axios.create({
+        baseURL: `${BASE_URL}/api/table/${ACCOUNT_TABLE_ID}`,
+        headers: {
+          'Authorization': `Bearer ${ACCOUNT_API_TOKEN}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      const QR_TABLE_ID = 'tblKbzktetIULQRAx84';
+      const QR_API_TOKEN = 'teable_acc6apVbI1tdWvEJ2Du_/eKE6zkWt5UYTzcSBcBNs4Olfj6MB65CXLkcWgMW70U=';
+      const qrApiClient = axios.create({
+        baseURL: `${BASE_URL}/api/table/${QR_TABLE_ID}`,
+        headers: {
+          'Authorization': `Bearer ${QR_API_TOKEN}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      // ================================================================
+      // 全局状态
+      // ================================================================
+      let currentUser = null;
+      let selectedLoginRole = '主账号';
+      let accounts = [];
+      let accFilter = 'all';
+      let accEyeOpen = false;
+      let loginEyeOpen = false;
+      let currentAmountStr = '0';
+      let confirmCallback = null;
+      let selectedOperator = '';
+      let currentPage = 'payment';
+      let qrSyncTimer = null;
+      let qrLastRecordId = null;
+      let qrLastUrl = null;
+      let qrSyncInitialized = false;
+      const QR_SYNC_INTERVAL = 10000;
+      let amountItems = [];
+      // ================================================================
+      // Toast
+      // ================================================================
+      function showToast(msg, type = 'success') {
+        const toast = document.getElementById('toast');
+        const inner = document.getElementById('toast-inner');
+        const icon = document.getElementById('toast-icon');
+        const msgEl = document.getElementById('toast-msg');
+        const colors = {
+          success: 'bg-emerald-600',
+          error: 'bg-red-600',
+          warn: 'bg-amber-500',
+          info: 'bg-blue-600'
+        };
+        const icons = {
+          success: `<svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>`,
+          error: `<svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>`,
+          warn: `<svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01"/></svg>`,
+          info: `<svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01"/></svg>`
+        };
+        inner.className = `flex items-center gap-2 px-4 py-2.5 rounded-2xl shadow-xl text-sm font-semibold text-white ${colors[type]}`;
+        icon.innerHTML = icons[type];
+        msgEl.textContent = msg;
+        toast.classList.remove('hidden');
+        clearTimeout(toast._timer);
+        toast._timer = setTimeout(() => toast.classList.add('hidden'), 2800);
+      }
+      // ================================================================
+      // Confirm Modal
+      // ================================================================
+      function showConfirm(text, onConfirm, title = '操作确认') {
+        document.getElementById('confirm-title').textContent = title;
+        document.getElementById('confirm-text').textContent = text;
+        document.getElementById('confirm-modal').classList.remove('hidden');
+        confirmCallback = onConfirm;
+      }
+      document.getElementById('confirm-cancel').onclick = () => {
+        document.getElementById('confirm-modal').classList.add('hidden');
+        confirmCallback = null;
+      };
+      document.getElementById('confirm-ok').onclick = () => {
+        document.getElementById('confirm-modal').classList.add('hidden');
+        if (confirmCallback) {
+          confirmCallback();
+          confirmCallback = null;
+        }
+      };
+      // ================================================================
+      // 登录
+      // ================================================================
+      function selectLoginRole(role) {
+        selectedLoginRole = role;
+        const mainLabel = document.getElementById('role-main-label');
+        const subLabel = document.getElementById('role-sub-label');
+        const mainDot = document.getElementById('role-main-dot');
+        const subDot = document.getElementById('role-sub-dot');
+        if (role === '主账号') {
+          mainLabel.className = 'flex items-center gap-2.5 p-3.5 border-2 border-blue-500 rounded-2xl bg-blue-50 cursor-pointer';
+          subLabel.className = 'flex items-center gap-2.5 p-3.5 border-2 border-gray-200 rounded-2xl cursor-pointer';
+          mainDot.innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-blue-500 block"></span>';
+          mainDot.className = 'w-5 h-5 rounded-full border-2 border-blue-500 flex items-center justify-center flex-shrink-0';
+          subDot.innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-transparent block"></span>';
+          subDot.className = 'w-5 h-5 rounded-full border-2 border-gray-300 flex items-center justify-center flex-shrink-0';
+        } else {
+          subLabel.className = 'flex items-center gap-2.5 p-3.5 border-2 border-blue-500 rounded-2xl bg-blue-50 cursor-pointer';
+          mainLabel.className = 'flex items-center gap-2.5 p-3.5 border-2 border-gray-200 rounded-2xl cursor-pointer';
+          subDot.innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-blue-500 block"></span>';
+          subDot.className = 'w-5 h-5 rounded-full border-2 border-blue-500 flex items-center justify-center flex-shrink-0';
+          mainDot.innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-transparent block"></span>';
+          mainDot.className = 'w-5 h-5 rounded-full border-2 border-gray-300 flex items-center justify-center flex-shrink-0';
+        }
+      }
+
+      function toggleLoginPwd() {
+        loginEyeOpen = !loginEyeOpen;
+        const input = document.getElementById('login-password');
+        input.type = loginEyeOpen ? 'text' : 'password';
+        document.getElementById('login-eye').innerHTML = loginEyeOpen ?
+          `<path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M3 3l18 18"/>` :
+          `<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>`;
+      }
+      async function handleLogin(e) {
+        e.preventDefault();
+        const username = document.getElementById('login-username').value.trim();
+        const password = document.getElementById('login-password').value;
+        const btn = document.getElementById('login-btn');
+        const spinner = document.getElementById('login-spinner');
+        const text = document.getElementById('login-text');
+        btn.disabled = true;
+        spinner.classList.remove('hidden');
+        text.textContent = '登录中...';
+        try {
+          const respAll = await accountApiClient.get('/record?fieldKeyType=name&take=1000');
+          const allRecords = respAll.data.records || [];
+          if (!allRecords.length) {
+            showToast('无法获取账号数据', 'error');
+            return;
+          }
+          const matched = allRecords.find(r =>
+            String(r.fields['账号'] || '') === username &&
+            String(r.fields['密码'] || '') === password &&
+            String(r.fields['账号类型'] || '') === selectedLoginRole
+          );
+          if (!matched) {
+            const userExists = allRecords.find(r => String(r.fields['账号'] || '') === username);
+            if (!userExists) {
+              showToast('账号不存在', 'error');
+              return;
+            }
+            const pwdOk = allRecords.find(r => String(r.fields['账号'] || '') === username && String(r.fields['密码'] || '') === password);
+            if (pwdOk) showToast(`该账号类型为「${pwdOk.fields['账号类型']}」`, 'warn');
+            else showToast('密码错误', 'error');
+            return;
+          }
+          currentUser = {
+            username: String(matched.fields['账号']),
+            role: String(matched.fields['账号类型']),
+            id: matched.id
+          };
+          accounts = allRecords;
+          initMainApp();
+        } catch {
+          showToast('网络错误，请重试', 'error');
+        } finally {
+          btn.disabled = false;
+          spinner.classList.add('hidden');
+          text.textContent = '登 录';
+        }
+      }
+
+      function handleLogout() {
+        const existing = document.getElementById('logout-inline-bar');
+        if (existing) {
+          collapseLogoutBar();
+          return;
+        }
+        const statusBar = document.querySelector('.status-bar');
+        if (!statusBar) return;
+        const bar = document.createElement('div');
+        bar.id = 'logout-inline-bar';
+        bar.style.cssText = 'animation: slideDown .18s cubic-bezier(.4,0,.2,1); overflow: hidden;';
+        bar.className = 'mx-3 mt-2 mb-1 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 flex items-center justify-between gap-3 flex-shrink-0';
+        bar.innerHTML = `
+          <div class="flex items-center gap-2 flex-1 min-w-0">
+            <svg class="h-4 w-4 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+            </svg>
+            <span class="text-sm text-amber-800 font-medium">确认退出登录？</span>
+          </div>
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <button onclick="collapseLogoutBar()" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white text-gray-600 border border-gray-200 active:bg-gray-100">取消</button>
+            <button onclick="doLogout()" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-500 text-white active:bg-amber-600">退出</button>
+          </div>`;
+        statusBar.insertAdjacentElement('afterend', bar);
+      }
+
+      function collapseLogoutBar() {
+        const bar = document.getElementById('logout-inline-bar');
+        if (!bar) return;
+        bar.style.opacity = '0';
+        bar.style.transition = 'opacity .15s';
+        setTimeout(() => bar.remove(), 150);
+      }
+
+      function doLogout() {
+        collapseLogoutBar();
+        currentUser = null;
+        stopQrAutoSync();
+        document.getElementById('login-screen').style.display = '';
+        document.getElementById('app-shell').classList.add('hidden');
+        document.getElementById('login-form').reset();
+        showToast('已退出登录', 'info');
+      }
+      // ================================================================
+      // 初始化主应用
+      // ================================================================
+      async function initMainApp() {
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('app-shell').classList.remove('hidden');
+        document.getElementById('header-username').textContent = currentUser.username;
+        const badge = document.getElementById('header-role-badge');
+        if (currentUser.role === '主账号') {
+          badge.textContent = '⭐ 主账号';
+          badge.className = 'text-xs px-2.5 py-1 rounded-full font-semibold bg-white/20 text-white';
+          document.getElementById('nav-accounts').classList.remove('hidden');
+          document.getElementById('operator-select-wrap').classList.remove('hidden');
+          document.getElementById('rec-operator-wrap').classList.remove('hidden');
+          buildOperatorOptions();
+        } else {
+          badge.textContent = '👤 子账号';
+          badge.className = 'text-xs px-2.5 py-1 rounded-full font-semibold bg-white/20 text-white';
+          // 子账号：隐藏账号管理入口，隐藏收款人筛选
+          document.getElementById('nav-accounts').classList.remove('hidden');
+          document.getElementById('operator-select-wrap').classList.add('hidden');
+          document.getElementById('rec-operator-wrap').classList.add('hidden');
+        }
+        document.getElementById('operator-name').textContent = currentUser.username;
+        selectedOperator = currentUser.username;
+        const now = new Date();
+        const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+        document.getElementById('rec-start-date').value = today;
+        document.getElementById('rec-end-date').value = today;
+        switchPage('payment');
+        startQrAutoSync();
+        loadTodayStats();
+        if (currentUser.role === '主账号') {
+          document.getElementById('main-acc-section').classList.remove('hidden');
+          document.getElementById('sub-change-pwd-section').classList.add('hidden');
+          document.getElementById('acc-list').classList.remove('hidden');
+          renderAccounts();
+        } else {
+          document.getElementById('main-acc-section').classList.add('hidden');
+          document.getElementById('sub-change-pwd-section').classList.remove('hidden');
+          document.getElementById('acc-list').classList.add('hidden');
+          document.getElementById('acc-footer').classList.add('hidden');
+          document.getElementById('sub-pwd-username-tip').textContent = `当前账号：${currentUser.username}`;
+        }
+      }
+
+      function buildOperatorOptions() {
+        const subAccounts = accounts.filter(a => a.fields?.['账号类型'] === '子账号').map(a => a.fields?.['账号']).filter(Boolean);
+        const select = document.getElementById('operator-select');
+        const recSelect = document.getElementById('rec-operator-filter');
+        select.innerHTML = `<option value="${escapeHtml(currentUser.username)}">${escapeHtml(currentUser.username)}（本人）</option>`;
+        recSelect.innerHTML = `<option value="">全部收款人</option>`;
+        subAccounts.forEach(op => {
+          select.innerHTML += `<option value="${escapeHtml(op)}">${escapeHtml(op)}</option>`;
+          recSelect.innerHTML += `<option value="${escapeHtml(op)}">${escapeHtml(op)}</option>`;
+        });
+        recSelect.innerHTML += `<option value="${escapeHtml(currentUser.username)}">${escapeHtml(currentUser.username)}（本人）</option>`;
+      }
+
+      function onOperatorChange() {
+        const val = document.getElementById('operator-select').value;
+        selectedOperator = val || currentUser.username;
+        document.getElementById('operator-name').textContent = selectedOperator;
+        // 切换收款人后立即刷新今日统计
+        loadTodayStats();
+      }
+      // ================================================================
+      // 页面切换
+      // ================================================================
+      function switchPage(page) {
+        currentPage = page;
+        ['payment', 'records', 'qrcode', 'accounts'].forEach(p => {
+          const pageEl = document.getElementById(`page-${p}`);
+          const navEl = document.getElementById(`nav-${p}`);
+          if (!pageEl || !navEl) return;
+          if (p === page) {
+            pageEl.classList.add('active', 'fade-in');
+            navEl.classList.add('active');
+            setTimeout(() => pageEl.classList.remove('fade-in'), 300);
+          } else {
+            pageEl.classList.remove('active');
+            navEl.classList.remove('active');
+          }
+        });
+        document.getElementById('main-page-content').scrollTop = 0;
+      }
+      // ================================================================
+      // 数字键盘
+      // ================================================================
+      function numInput(char) {
+        if (char === '.') {
+          if (currentAmountStr.includes('.')) return;
+          currentAmountStr += '.';
+        } else {
+          if (currentAmountStr === '0' && char !== '.') currentAmountStr = char;
+          else {
+            const parts = currentAmountStr.split('.');
+            if (parts.length === 2 && parts[1].length >= 2) return;
+            if (currentAmountStr.replace('.', '').length >= 8) return;
+            currentAmountStr += char;
+          }
+        }
+        updateAmountDisplay();
+      }
+
+      function numDelete() {
+        currentAmountStr = currentAmountStr.length <= 1 ? '0' : currentAmountStr.slice(0, -1);
+        updateAmountDisplay();
+      }
+
+      function numClear() {
+        currentAmountStr = '0';
+        updateAmountDisplay();
+      }
+
+      function updateAmountDisplay() {
+        document.getElementById('amount-display').textContent = currentAmountStr;
+        const discount = parseFloat(document.getElementById('discount-input').value) || 100;
+        const amount = parseFloat(currentAmountStr) || 0;
+        const tip = document.getElementById('current-discount-tip');
+        if (discount < 100 && amount > 0) {
+          document.getElementById('current-discount-val').textContent = discount;
+          document.getElementById('current-discounted-val').textContent = (amount * discount / 100).toFixed(2);
+          tip.classList.remove('hidden');
+        } else {
+          tip.classList.add('hidden');
+        }
+      }
+
+      function onDiscountChange() {
+        updateAmountDisplay();
+      }
+      // ================================================================
+      // 累计金额逻辑
+      // ================================================================
+      function addCurrentAmount() {
+        const raw = parseFloat(currentAmountStr);
+        if (!raw || raw <= 0) {
+          showToast('请先输入有效金额', 'warn');
+          return;
+        }
+        const discount = parseFloat(document.getElementById('discount-input').value) || 100;
+        const actual = parseFloat((raw * discount / 100).toFixed(2));
+        amountItems.push({
+          raw,
+          discount,
+          actual
+        });
+        currentAmountStr = '0';
+        updateAmountDisplay();
+        renderItemsList();
+        showToast(`已加入 ¥${actual.toFixed(2)}${discount < 100 ? '（'+discount+'%折）' : ''}`, 'success');
+      }
+
+      function removeItem(idx) {
+        amountItems.splice(idx, 1);
+        renderItemsList();
+      }
+
+      function clearAllItems() {
+        if (!amountItems.length) return;
+        const existing = document.getElementById('clear-items-inline-bar');
+        if (existing) {
+          collapseClearBar();
+          return;
+        }
+        const anchor = document.getElementById('clear-items-btn');
+        if (!anchor) return;
+        const bar = document.createElement('div');
+        bar.id = 'clear-items-inline-bar';
+        bar.style.cssText = 'animation: slideDown .18s cubic-bezier(.4,0,.2,1); overflow: hidden;';
+        bar.className = 'mx-0 mt-2 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 flex items-center justify-between gap-3';
+        bar.innerHTML = `
+          <div class="flex items-center gap-2 flex-1 min-w-0">
+            <svg class="h-4 w-4 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            </svg>
+            <span class="text-sm text-red-700 font-medium">确认清空所有累计项目？</span>
+          </div>
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <button onclick="collapseClearBar()" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white text-gray-600 border border-gray-200 active:bg-gray-100">取消</button>
+            <button onclick="doClearItems()" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-red-600 text-white active:bg-red-700">清空</button>
+          </div>`;
+        const itemsListEl = document.getElementById('items-list');
+        if (itemsListEl && itemsListEl.parentNode) {
+          itemsListEl.parentNode.insertBefore(bar, itemsListEl.nextSibling);
+        }
+      }
+
+      function collapseClearBar() {
+        const bar = document.getElementById('clear-items-inline-bar');
+        if (!bar) return;
+        bar.style.opacity = '0';
+        bar.style.transition = 'opacity .15s';
+        setTimeout(() => bar.remove(), 150);
+      }
+
+      function doClearItems() {
+        collapseClearBar();
+        amountItems = [];
+        currentAmountStr = '0';
+        updateAmountDisplay();
+        renderItemsList();
+      }
+
+      function getGrandTotal() {
+        return amountItems.reduce((s, item) => s + item.actual, 0);
+      }
+
+      function renderItemsList() {
+        const listEl = document.getElementById('items-list');
+        const totalRow = document.getElementById('total-row');
+        const badge = document.getElementById('items-badge');
+        const clearBtn = document.getElementById('clear-items-btn');
+        const grandTotal = document.getElementById('grand-total-display');
+        const emptyTip = document.getElementById('items-empty-tip');
+        if (!amountItems.length) {
+          listEl.classList.add('hidden');
+          totalRow.classList.add('hidden');
+          badge.classList.add('hidden');
+          clearBtn.classList.add('hidden');
+          if (emptyTip) emptyTip.classList.remove('hidden');
+          return;
+        }
+        if (emptyTip) emptyTip.classList.add('hidden');
+        badge.textContent = `${amountItems.length}项`;
+        badge.classList.remove('hidden');
+        clearBtn.classList.remove('hidden');
+        listEl.classList.remove('hidden');
+        totalRow.classList.remove('hidden');
+        listEl.innerHTML = '';
+        amountItems.forEach((item, idx) => {
+          const div = document.createElement('div');
+          div.className = 'sum-item fade-in';
+          div.style.animationDelay = `${idx*0.03}s`;
+          const hasDiscount = item.discount < 100;
+          div.innerHTML = `
+            <div class="flex items-center gap-2 flex-1 min-w-0">
+              <span class="text-xs text-gray-400 flex-shrink-0 w-5 text-center font-semibold">${idx+1}</span>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class="text-sm font-bold text-gray-800">¥ ${item.actual.toFixed(2)}</span>
+                  ${hasDiscount ? `<span class="sum-item-badge bg-amber-50 text-amber-600 border border-amber-100">${item.discount}%折</span><span class="text-xs text-gray-400">原¥${item.raw.toFixed(2)}</span>` : ''}
+                </div>
+              </div>
+            </div>
+            <button onclick="removeItem(${idx})" class="flex-shrink-0 p-1.5 text-gray-300 hover:text-red-400 active:text-red-500 rounded-lg">
+              <svg style="width:15px;height:15px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>`;
+          listEl.appendChild(div);
+        });
+        grandTotal.textContent = getGrandTotal().toFixed(2);
+      }
+      // ================================================================
+      // 付款弹窗（全屏）
+      // ================================================================
+      function showPayModal() {
+        const el = document.getElementById('pay-modal');
+        el.style.removeProperty('display');
+        el.classList.remove('hidden');
+      }
+
+      function openPayModal() {
+        let finalTotal = 0;
+        let useItems = false;
+        if (amountItems.length > 0) {
+          const inputRaw = parseFloat(currentAmountStr) || 0;
+          if (inputRaw > 0) {
+            const d = parseFloat(document.getElementById('discount-input').value) || 100;
+            amountItems.push({
+              raw: inputRaw,
+              discount: d,
+              actual: parseFloat((inputRaw * d / 100).toFixed(2))
+            });
+            currentAmountStr = '0';
+            updateAmountDisplay();
+            renderItemsList();
+          }
+          finalTotal = getGrandTotal();
+          useItems = true;
+        } else {
+          const raw = parseFloat(currentAmountStr) || 0;
+          const discount = parseFloat(document.getElementById('discount-input').value) || 100;
+          finalTotal = parseFloat((raw * discount / 100).toFixed(2));
+        }
+        if (finalTotal <= 0) {
+          showToast('请先输入收款金额', 'warn');
+          return;
+        }
+        const operator = selectedOperator || currentUser.username;
+        document.getElementById('pay-modal-amount').textContent = finalTotal.toFixed(2);
+        document.getElementById('pay-modal-operator').textContent = `收款人：${operator}`;
+        const detailEl = document.getElementById('pay-modal-detail');
+        if (useItems && amountItems.length > 1) {
+          let html = `<div class="mb-1"><p class="text-xs font-bold text-gray-400 mb-1 px-1">收款明细（${amountItems.length}项）</p><div class="space-y-1">`;
+          amountItems.forEach((item, idx) => {
+            const hasD = item.discount < 100;
+            html += `<div class="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2">
+              <span class="text-xs text-gray-500">${idx+1}. ${hasD?`¥${item.raw.toFixed(2)} × ${item.discount}%折`:'原价'}</span>
+              <span class="text-sm font-bold text-gray-800">¥ ${item.actual.toFixed(2)}</span>
+            </div>`;
+          });
+          html += `</div></div>`;
+          detailEl.innerHTML = html;
+          detailEl.classList.remove('hidden');
+        } else {
+          detailEl.innerHTML = '';
+          detailEl.classList.add('hidden');
+        }
+        showPayModal();
+        loadQrIntoModal();
+      }
+
+      function closePayModal() {
+        const el = document.getElementById('pay-modal');
+        el.classList.add('hidden');
+        el.style.setProperty('display', 'none', 'important');
+      }
+      async function loadQrIntoModal() {
+        const inner = document.getElementById('pay-modal-qr-inner');
+        inner.innerHTML = `<div class="text-center"><svg class="h-6 w-6 spin mx-auto text-blue-400" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg><p class="text-xs text-gray-400 mt-2">加载收款码...</p></div>`;
+        try {
+          const orderBy = JSON.stringify([{
+            fieldId: 'fldXVmSgVKijqSaaAPa',
+            order: 'desc'
+          }]);
+          const filter = JSON.stringify({
+            conjunction: 'and',
+            filterSet: [{
+              fieldId: 'fldYEqeLBKU7x9nGzOo',
+              operator: 'isNotEmpty',
+              value: ''
+            }]
+          });
+          const resp = await qrApiClient.get(`/record?fieldKeyType=name&take=1&filter=${encodeURIComponent(filter)}&orderBy=${encodeURIComponent(orderBy)}`);
+          const records = resp.data.records || [];
+          if (!records.length || !records[0].fields?.['收款二维码']) {
+            inner.innerHTML = `<p class="text-gray-400 text-sm p-4">暂无收款码</p>`;
+            return;
+          }
+          const url = records[0].fields['收款二维码'][0].url || records[0].fields['收款二维码'][0].presignedUrl || '';
+          if (!url) {
+            inner.innerHTML = `<p class="text-xs text-red-400">收款码地址无效</p>`;
+            return;
+          }
+          inner.innerHTML = `<img src="${url}" class="w-full mx-auto rounded-xl object-contain" style="max-height:340px;" onerror="this.parentNode.innerHTML='<p class=\\'text-xs text-red-400\\'>图片加载失败</p>'" />`;
+        } catch {
+          inner.innerHTML = `<p class="text-xs text-red-400">加载失败，请重试</p>`;
+        }
+      }
+      async function confirmPayment() {
+        const operator = selectedOperator || currentUser.username;
+        const btn = document.getElementById('confirm-pay-btn');
+        const spinner = document.getElementById('confirm-pay-spinner');
+        const icon = document.getElementById('confirm-pay-icon');
+        const text = document.getElementById('confirm-pay-text');
+        btn.disabled = true;
+        spinner.classList.remove('hidden');
+        icon.classList.add('hidden');
+        text.textContent = '提交中...';
+        try {
+          let records = [];
+          if (amountItems.length > 0) {
+            records = amountItems.map(item => {
+              const fields = {
+                '日期': new Date().toISOString(),
+                '收款': item.actual,
+                '账号': operator
+              };
+              if (item.discount !== 100) fields['折扣'] = item.discount.toString();
+              return {
+                fields
+              };
+            });
+          } else {
+            const raw = parseFloat(currentAmountStr) || 0;
+            const discount = parseFloat(document.getElementById('discount-input').value) || 100;
+            const final = parseFloat((raw * discount / 100).toFixed(2));
+            if (final <= 0) {
+              showToast('金额无效', 'warn');
+              return;
+            }
+            const fields = {
+              '日期': new Date().toISOString(),
+              '收款': final,
+              '账号': operator
+            };
+            if (discount !== 100) fields['折扣'] = discount.toString();
+            records = [{
+              fields
+            }];
+          }
+          const BATCH = 20;
+          for (let i = 0; i < records.length; i += BATCH) {
+            await apiClient.post('/record', {
+              fieldKeyType: 'name',
+              records: records.slice(i, i + BATCH)
+            });
+          }
+          const totalAmt = records.reduce((s, r) => s + r.fields['收款'], 0);
+          closePayModal();
+          showToast(`收款成功：¥${totalAmt.toFixed(2)}（${records.length}笔）`, 'success');
+          amountItems = [];
+          currentAmountStr = '0';
+          updateAmountDisplay();
+          renderItemsList();
+          loadTodayStats();
+        } catch {
+          showToast('保存失败，请重试', 'error');
+        } finally {
+          btn.disabled = false;
+          spinner.classList.add('hidden');
+          icon.classList.remove('hidden');
+          text.textContent = '确认收款';
+        }
+      }
+      // ================================================================
+      // 今日统计 - 根据当前选中收款人精确过滤
+      // ================================================================
+      async function loadTodayStats() {
+        const now = new Date();
+        const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+        const start = localDateToStartISO(todayStr);
+        const end = localDateToEndISO(todayStr);
+        // 确定要查询的收款人：子账号固定为自己；主账号按当前选择的 selectedOperator
+        let filterOperator = null;
+        if (currentUser?.role !== '主账号') {
+          filterOperator = currentUser?.username;
+        } else {
+          // 主账号：selectedOperator 就是当前选中收款人（可能是本人或子账号）
+          filterOperator = selectedOperator || currentUser?.username;
+        }
+        document.getElementById('today-count').textContent = '...';
+        document.getElementById('today-total').textContent = '...';
+        try {
+          const data = await queryRecordsByDateAndAccount(start, end, filterOperator);
+          const records = (data.records || []).filter(r => {
+            const localDate = utcISOToLocalDateStr(r.fields?.['日期'] || '');
+            if (localDate !== todayStr) return false;
+            // 严格匹配收款人
+            return (r.fields?.['账号'] || '') === filterOperator;
+          });
+          const total = records.reduce((s, r) => s + (parseFloat(r.fields?.['收款']) || 0), 0);
+          document.getElementById('today-count').textContent = records.length;
+          document.getElementById('today-total').textContent = '¥' + total.toFixed(2);
+        } catch {
+          document.getElementById('today-count').textContent = '-';
+          document.getElementById('today-total').textContent = '-';
+        }
+      }
+      // ================================================================
+      // 通用查询
+      // ================================================================
+      async function queryRecordsByDateAndAccount(startISO, endISO, account = null) {
+        let filterSet = [{
+            fieldId: FIELD.DATE,
+            operator: 'isGreaterEqual',
+            value: startISO
+          },
+          {
+            fieldId: FIELD.DATE,
+            operator: 'isLessEqual',
+            value: endISO
+          }
+        ];
+        if (account) filterSet.push({
+          fieldId: FIELD.ACCOUNT,
+          operator: 'is',
+          value: account
+        });
+        const filter = {
+          conjunction: 'and',
+          filterSet
+        };
+        const orderBy = JSON.stringify([{
+          fieldId: FIELD.DATE,
+          order: 'desc'
+        }]);
+        const resp = await apiClient.get(`/record?fieldKeyType=name&take=1000&filter=${encodeURIComponent(JSON.stringify(filter))}&orderBy=${encodeURIComponent(orderBy)}`);
+        return resp.data;
+      }
+      // ================================================================
+      // 记录查询
+      // ================================================================
+      async function loadRecords() {
+        const startDate = document.getElementById('rec-start-date').value;
+        const endDate = document.getElementById('rec-end-date').value;
+        if (!startDate || !endDate) {
+          showToast('请选择日期范围', 'warn');
+          return;
+        }
+        const start = localDateToStartISO(startDate);
+        const end = localDateToEndISO(endDate);
+        // 子账号只能查询自己的记录，主账号可按筛选条件查询
+        let account = null;
+        if (currentUser.role !== '主账号') {
+          account = currentUser.username;
+        } else {
+          account = document.getElementById('rec-operator-filter')?.value || null;
+        }
+        const list = document.getElementById('records-list');
+        const loading = document.getElementById('records-loading');
+        list.classList.add('hidden');
+        loading.classList.remove('hidden');
+        document.getElementById('records-summary').classList.add('hidden');
+        try {
+          const data = await queryRecordsByDateAndAccount(start, end, account);
+          const records = (data.records || []).filter(r => {
+            const localDate = utcISOToLocalDateStr(r.fields?.['日期'] || '');
+            if (localDate < startDate || localDate > endDate) return false;
+            // 子账号严格只能看自己的记录，不允许看其他人
+            if (currentUser.role !== '主账号') {
+              return (r.fields?.['账号'] || '') === currentUser.username;
+            }
+            if (account) return (r.fields?.['账号'] || '') === account;
+            return true;
+          });
+          loading.classList.add('hidden');
+          list.classList.remove('hidden');
+          list.innerHTML = '';
+          if (!records.length) {
+            list.innerHTML = '<div class="p-10 text-center text-gray-400 text-sm">该时间段内暂无记录</div>';
+            return;
+          }
+          const total = records.reduce((s, r) => s + (parseFloat(r.fields?.['收款']) || 0), 0);
+          document.getElementById('sum-count').textContent = records.length;
+          document.getElementById('sum-total').textContent = '¥' + total.toFixed(2);
+          document.getElementById('records-summary').classList.remove('hidden');
+          records.forEach((record, idx) => {
+            const amount = record.fields?.['收款'] || 0;
+            const acc = record.fields?.['账号'] || '-';
+            const dateRaw = record.fields?.['日期'] || '';
+            const discount = record.fields?.['折扣'];
+            const dateStr = dateRaw ? new Date(dateRaw).toLocaleString('zh-CN', {
+              month: '2-digit',
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: false
+            }) : '-';
+            const row = document.createElement('div');
+            row.className = 'px-4 py-3.5 flex items-center justify-between border-b border-gray-50 last:border-0 fade-in';
+            row.style.animationDelay = `${idx*0.03}s`;
+            row.innerHTML = `
+              <div class="flex items-center gap-3">
+                <div class="bg-emerald-100 rounded-full p-2 flex-shrink-0">
+                  <svg class="h-4 w-4 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+                <div>
+                  <p class="text-base font-bold text-gray-900">¥ ${parseFloat(amount).toFixed(2)}</p>
+                  <p class="text-xs text-gray-400 mt-0.5">${escapeHtml(acc)} · ${dateStr}</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-1.5 flex-shrink-0">
+                ${discount?`<span class="tag-badge bg-amber-50 text-amber-700 border border-amber-100">${escapeHtml(discount)}%折</span>`:''}
+                <span class="tag-badge bg-emerald-50 text-emerald-700 border border-emerald-100">已收</span>
+              </div>`;
+            list.appendChild(row);
+          });
+        } catch (err) {
+          loading.classList.add('hidden');
+          list.classList.remove('hidden');
+          list.innerHTML = `<div class="p-10 text-center text-red-400 text-sm">加载失败：${err.message||'网络错误'}</div>`;
+        }
+      }
+
+      function utcISOToLocalDateStr(isoStr) {
+        if (!isoStr) return '';
+        const d = new Date(isoStr);
+        return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      }
+
+      function localDateToStartISO(dateStr) {
+        const [y, m, d] = dateStr.split('-').map(Number);
+        return new Date(y, m - 1, d - 1, 0, 0, 0, 0).toISOString();
+      }
+
+      function localDateToEndISO(dateStr) {
+        const [y, m, d] = dateStr.split('-').map(Number);
+        return new Date(y, m - 1, d + 1, 23, 59, 59, 999).toISOString();
+      }
+      // ================================================================
+      // 二维码自动同步
+      // ================================================================
+      function setQrSyncStatus(state) {
+        const dot = document.getElementById('qr-sync-dot');
+        const text = document.getElementById('qr-sync-text');
+        if (!dot || !text) return;
+        const map = {
+          ok: {
+            dot: 'bg-emerald-400',
+            text: '已同步'
+          },
+          syncing: {
+            dot: 'bg-blue-400 animate-pulse',
+            text: '同步中...'
+          },
+          error: {
+            dot: 'bg-red-400',
+            text: '同步异常'
+          },
+          empty: {
+            dot: 'bg-gray-300',
+            text: '暂无收款码'
+          }
+        };
+        const s = map[state] || map.ok;
+        dot.className = `inline-block w-1.5 h-1.5 rounded-full ${s.dot}`;
+        text.textContent = s.text;
+      }
+      async function fetchQrCodeSilent() {
+        try {
+          const orderBy = JSON.stringify([{
+            fieldId: 'fldXVmSgVKijqSaaAPa',
+            order: 'desc'
+          }]);
+          const filter = JSON.stringify({
+            conjunction: 'and',
+            filterSet: [{
+              fieldId: 'fldYEqeLBKU7x9nGzOo',
+              operator: 'isNotEmpty',
+              value: ''
+            }]
+          });
+          const resp = await qrApiClient.get(`/record?fieldKeyType=name&take=1&filter=${encodeURIComponent(filter)}&orderBy=${encodeURIComponent(orderBy)}`);
+          const records = resp.data.records || [];
+          if (!records.length) {
+            if (!qrSyncInitialized || qrLastRecordId !== '__empty__') {
+              qrLastRecordId = '__empty__';
+              qrLastUrl = null;
+              const display = document.getElementById('current-qr-display');
+              if (display) display.innerHTML = `<div class="text-center p-6"><svg class="h-12 w-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg><p class="text-gray-400 text-sm">暂无收款二维码</p></div>`;
+              setQrSyncStatus('empty');
+            }
+            qrSyncInitialized = true;
+            return;
+          }
+          const record = records[0];
+          const attachments = record.fields?.['收款二维码'];
+          if (!attachments || !attachments.length) {
+            qrSyncInitialized = true;
+            setQrSyncStatus('empty');
+            return;
+          }
+          const firstUrl = attachments[0].url || attachments[0].presignedUrl || '';
+          const recordId = record.id;
+          if (qrSyncInitialized && qrLastRecordId === recordId && qrLastUrl === firstUrl) {
+            setQrSyncStatus('ok');
+            return;
+          }
+          qrLastRecordId = recordId;
+          qrLastUrl = firstUrl;
+          const imgItems = attachments.map(att => {
+            const url = att.url || att.presignedUrl || '';
+            if (!url) return '';
+            return `<div class="flex flex-col items-center"><img src="${url}" class="max-h-72 mx-auto rounded-2xl object-contain shadow-lg border border-gray-100" onerror="this.parentNode.innerHTML='<p class=\\'text-xs text-red-400\\'>图片加载失败</p>'" /></div>`;
+          }).filter(Boolean).join('');
+          const newHtml = `<div class="w-full">${imgItems}</div>`;
+          const display = document.getElementById('current-qr-display');
+          if (display) {
+            if (!qrSyncInitialized) {
+              display.innerHTML = newHtml;
+            } else {
+              display.style.opacity = '0';
+              display.style.transition = 'opacity .25s';
+              setTimeout(() => {
+                display.innerHTML = newHtml;
+                display.style.opacity = '1';
+              }, 250);
+            }
+          }
+          setQrSyncStatus('ok');
+          qrSyncInitialized = true;
+        } catch {
+          setQrSyncStatus('error');
+        }
+      }
+
+      function startQrAutoSync() {
+        stopQrAutoSync();
+        qrSyncInitialized = false;
+        qrLastRecordId = null;
+        qrLastUrl = null;
+        setQrSyncStatus('syncing');
+        fetchQrCodeSilent();
+        qrSyncTimer = setInterval(fetchQrCodeSilent, QR_SYNC_INTERVAL);
+      }
+
+      function stopQrAutoSync() {
+        if (qrSyncTimer) {
+          clearInterval(qrSyncTimer);
+          qrSyncTimer = null;
+        }
+      }
+      // ================================================================
+      // 账号管理
+      // ================================================================
+      function toggleAccPwd() {
+        accEyeOpen = !accEyeOpen;
+        document.getElementById('acc-new-password').type = accEyeOpen ? 'text' : 'password';
+        document.getElementById('acc-eye-icon').innerHTML = accEyeOpen ?
+          `<path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M3 3l18 18"/>` :
+          `<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>`;
+      }
+
+      function toggleAccForm() {
+        const wrap = document.getElementById('acc-form-wrap');
+        const btn = document.getElementById('acc-toggle-form-btn');
+        if (wrap.classList.contains('hidden')) {
+          wrap.classList.remove('hidden');
+          btn.innerHTML = `<svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>关闭`;
+          btn.style.background = '#374151';
+          btn.style.boxShadow = 'none';
+        } else {
+          cancelAccForm();
+        }
+      }
+
+      function cancelAccForm() {
+        const wrap = document.getElementById('acc-form-wrap');
+        const btn = document.getElementById('acc-toggle-form-btn');
+        wrap.classList.add('hidden');
+        document.getElementById('acc-add-form').reset();
+        accEyeOpen = false;
+        document.getElementById('acc-new-password').type = 'password';
+        btn.innerHTML = `<svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>添加账号`;
+        btn.style.background = '';
+        btn.style.boxShadow = '';
+      }
+
+      function setAccFilter(val) {
+        accFilter = val;
+        ['all', '主账号', '子账号'].forEach(f => {
+          const id = f === 'all' ? 'acc-filter-all' : f === '主账号' ? 'acc-filter-main' : 'acc-filter-sub';
+          const el = document.getElementById(id);
+          if (!el) return;
+          el.className = (f === val) ? 'flex-1 py-2 rounded-xl text-xs font-bold bg-blue-600 text-white' : 'flex-1 py-2 rounded-xl text-xs font-bold bg-gray-100 text-gray-600';
+        });
+        renderAccounts();
+      }
+
+      function renderAccounts() {
+        const list = document.getElementById('acc-list');
+        const searchVal = (document.getElementById('acc-search')?.value || '').toLowerCase();
+        let filtered = accounts.filter(acc => {
+          const name = (acc.fields?.['账号'] || '').toLowerCase();
+          return (!searchVal || name.includes(searchVal)) && (accFilter === 'all' || acc.fields?.['账号类型'] === accFilter);
+        });
+        const mainCount = accounts.filter(a => a.fields?.['账号类型'] === '主账号').length;
+        const subCount = accounts.filter(a => a.fields?.['账号类型'] === '子账号').length;
+        document.getElementById('acc-total-count').textContent = accounts.length;
+        document.getElementById('acc-main-count').textContent = mainCount;
+        document.getElementById('acc-sub-count').textContent = subCount;
+        document.getElementById('acc-footer').classList.toggle('hidden', accounts.length === 0);
+        list.innerHTML = '';
+        if (!filtered.length) {
+          list.innerHTML = `<div class="p-12 text-center"><svg class="h-10 w-10 text-gray-200 mx-auto mb-3" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg><p class="text-gray-400 text-sm">${searchVal||accFilter!=='all'?'没有匹配的账号':'暂无账号'}</p></div>`;
+          return;
+        }
+        filtered.forEach((account, idx) => {
+          const isMain = account.fields?.['账号类型'] === '主账号';
+          const username = account.fields?.['账号'] || '-';
+          const accType = account.fields?.['账号类型'] || '-';
+          const isSelf = account.id === currentUser?.id;
+          const row = document.createElement('div');
+          row.id = `acc-row-${account.id}`;
+          row.className = 'flex flex-col border-b border-gray-50 last:border-0 fade-in';
+          row.style.animationDelay = `${idx*0.04}s`;
+          const inner = document.createElement('div');
+          inner.className = 'px-4 py-3.5 flex items-center justify-between';
+          inner.innerHTML = `
+            <div class="flex items-center gap-3">
+              <div class="${isMain?'bg-purple-100':'bg-blue-100'} rounded-full p-2.5">
+                <svg class="h-4 w-4 ${isMain?'text-purple-600':'text-blue-600'}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+              </div>
+              <div>
+                <div class="flex items-center gap-1.5">
+                  <p class="text-sm font-bold text-gray-900">${escapeHtml(username)}</p>
+                  ${isSelf?'<span class="tag-badge bg-green-50 text-green-700 border border-green-100" style="font-size:10px;">我</span>':''}
+                </div>
+                <p class="text-xs text-gray-400 mt-0.5">${isMain?'⭐ 主账号':'👤 子账号'}</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="triggerEditPwd('${account.id}','${escapeHtml(username)}')" class="p-2 text-gray-300 active:text-blue-500 rounded-xl active:bg-blue-50 transition-all"><svg style="width:18px;height:18px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536M9 11l6.586-6.586a2 2 0 112.828 2.828L11.828 13.828A2 2 0 0110 14.414V16h1.586a2 2 0 001.414-.586l.172-.172M9 11L7 13v2h2l2-2-2-2z"/></svg></button>
+              ${!isSelf?`<button onclick="triggerDeleteAccount('${account.id}','${escapeHtml(accType)}','${escapeHtml(username)}')" class="p-2 text-gray-300 active:text-red-500 rounded-xl active:bg-red-50 transition-all"><svg style="width:18px;height:18px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>`:''}
+            </div>`;
+          row.appendChild(inner);
+          list.appendChild(row);
+        });
+      }
+      async function handleAddAccount(e) {
+        e.preventDefault();
+        const username = document.getElementById('acc-new-username').value.trim();
+        const password = document.getElementById('acc-new-password').value;
+        const accountType = document.getElementById('acc-new-type').value;
+        if (accounts.some(a => (a.fields?.['账号'] || '') === username)) {
+          showToast('账号名称已存在', 'warn');
+          return;
+        }
+        const btn = document.getElementById('acc-submit-btn');
+        const spinner = document.getElementById('acc-submit-spinner');
+        const text = document.getElementById('acc-submit-text');
+        btn.disabled = true;
+        spinner.classList.remove('hidden');
+        text.textContent = '创建中...';
+        try {
+          const response = await accountApiClient.post('/record', {
+            fieldKeyType: 'name',
+            records: [{
+              fields: {
+                '账号': username,
+                '密码': password,
+                '账号类型': accountType
+              }
+            }]
+          });
+          const newRecord = response.data.records?.[0];
+          if (newRecord) accounts.unshift(newRecord);
+          cancelAccForm();
+          setAccFilter('all');
+          renderAccounts();
+          if (currentUser.role === '主账号') buildOperatorOptions();
+          showToast(`账号「${username}」创建成功`, 'success');
+        } catch {
+          showToast('创建账号失败', 'error');
+        } finally {
+          btn.disabled = false;
+          spinner.classList.add('hidden');
+          text.textContent = '创建账号';
+        }
+      }
+      // 当前展开内联确认的行 id
+      let pendingDeleteRowId = null;
+      // 当前展开密码修改的行 id
+      let pendingEditPwdRowId = null;
+      // 密码可见性状态 map
+      const pwdVisibleMap = {};
+
+      function triggerEditPwd(recordId, username) {
+        // 先关闭可能展开的删除确认
+        if (pendingDeleteRowId) {
+          collapseInlineConfirm(pendingDeleteRowId);
+        }
+        // 若已展开该行密码编辑，则收起
+        if (pendingEditPwdRowId === recordId) {
+          collapseInlineEditPwd(recordId);
+          return;
+        }
+        // 关闭其他行的密码编辑
+        if (pendingEditPwdRowId && pendingEditPwdRowId !== recordId) {
+          collapseInlineEditPwd(pendingEditPwdRowId);
+        }
+        pendingEditPwdRowId = recordId;
+        const rowEl = document.getElementById(`acc-row-${recordId}`);
+        if (!rowEl) return;
+        const existing = rowEl.querySelector('.inline-edit-pwd');
+        if (existing) existing.remove();
+        pwdVisibleMap[recordId] = false;
+        const editEl = document.createElement('div');
+        editEl.className = 'inline-edit-pwd mx-4 mb-3 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3';
+        editEl.id = `edit-pwd-block-${recordId}`;
+        editEl.innerHTML = `
+          <div class="flex items-center gap-2 mb-2.5">
+            <svg class="h-4 w-4 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536M9 11l6.586-6.586a2 2 0 112.828 2.828L11.828 13.828A2 2 0 0110 14.414V16h1.586a2 2 0 001.414-.586l.172-.172M9 11L7 13v2h2l2-2-2-2z"/>
+            </svg>
+            <span class="text-sm text-blue-800 font-semibold">修改「${escapeHtml(username)}」的密码</span>
+          </div>
+          <div class="relative mb-3">
+            <input
+              type="password"
+              id="new-pwd-input-${recordId}"
+              placeholder="请输入新密码"
+              class="input-field text-sm py-2.5 pr-12 w-full"
+              autocomplete="new-password"
+            />
+            <button type="button" onclick="toggleInlinePwdEye('${recordId}')" class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400">
+              <svg id="inline-eye-${recordId}" style="width:18px;height:18px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+              </svg>
+            </button>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="collapseInlineEditPwd('${recordId}')" class="flex-1 py-2 rounded-xl text-xs font-semibold bg-white text-gray-600 border border-gray-200 active:bg-gray-100">取消</button>
+            <button onclick="doEditPwd('${recordId}','${escapeHtml(username)}')" class="flex-1 py-2 rounded-xl text-xs font-semibold bg-blue-600 text-white active:bg-blue-700">保存</button>
+          </div>`;
+        rowEl.appendChild(editEl);
+        setTimeout(() => {
+          const inp = document.getElementById(`new-pwd-input-${recordId}`);
+          if (inp) inp.focus();
+        }, 100);
+      }
+
+      function toggleInlinePwdEye(recordId) {
+        pwdVisibleMap[recordId] = !pwdVisibleMap[recordId];
+        const inp = document.getElementById(`new-pwd-input-${recordId}`);
+        const eyeIcon = document.getElementById(`inline-eye-${recordId}`);
+        if (!inp || !eyeIcon) return;
+        inp.type = pwdVisibleMap[recordId] ? 'text' : 'password';
+        eyeIcon.innerHTML = pwdVisibleMap[recordId] ?
+          `<path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M3 3l18 18"/>` :
+          `<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>`;
+      }
+
+      function collapseInlineEditPwd(recordId) {
+        if (pendingEditPwdRowId === recordId) pendingEditPwdRowId = null;
+        const rowEl = document.getElementById(`acc-row-${recordId}`);
+        if (!rowEl) return;
+        const existing = rowEl.querySelector('.inline-edit-pwd');
+        if (existing) {
+          existing.style.opacity = '0';
+          existing.style.transition = 'opacity .15s';
+          setTimeout(() => existing.remove(), 150);
+        }
+        delete pwdVisibleMap[recordId];
+      }
+      async function doEditPwd(recordId, username) {
+        const inp = document.getElementById(`new-pwd-input-${recordId}`);
+        if (!inp) return;
+        const newPwd = inp.value.trim();
+        if (!newPwd) {
+          showToast('新密码不能为空', 'warn');
+          inp.focus();
+          return;
+        }
+        if (newPwd.length < 1) {
+          showToast('密码至少1位', 'warn');
+          return;
+        }
+        // 禁用保存按钮，显示 loading
+        const block = document.getElementById(`edit-pwd-block-${recordId}`);
+        const saveBtn = block ? block.querySelectorAll('button')[2] : null;
+        if (saveBtn) {
+          saveBtn.disabled = true;
+          saveBtn.textContent = '保存中...';
+        }
+        try {
+          await accountApiClient.patch(`/record/${recordId}`, {
+            fieldKeyType: 'name',
+            record: {
+              fields: {
+                '密码': newPwd
+              }
+            }
+          });
+          // 同步更新本地 accounts 缓存
+          const acc = accounts.find(a => a.id === recordId);
+          if (acc) acc.fields['密码'] = newPwd;
+          collapseInlineEditPwd(recordId);
+          showToast(`「${username}」密码已更新`, 'success');
+        } catch {
+          showToast('密码修改失败，请重试', 'error');
+          if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.textContent = '保存';
+          }
+        }
+      }
+
+      function triggerDeleteAccount(recordId, accountType, username) {
+        if (accountType === '主账号') {
+          const mains = accounts.filter(a => a.fields?.['账号类型'] === '主账号');
+          if (mains.length <= 1) {
+            showToast('必须保留至少一个主账号', 'warn');
+            return;
+          }
+        }
+        // 如果已有展开的确认行，先收起
+        if (pendingDeleteRowId && pendingDeleteRowId !== recordId) {
+          collapseInlineConfirm(pendingDeleteRowId);
+        }
+        if (pendingDeleteRowId === recordId) {
+          collapseInlineConfirm(recordId);
+          return;
+        }
+        pendingDeleteRowId = recordId;
+        const rowEl = document.getElementById(`acc-row-${recordId}`);
+        if (!rowEl) return;
+        // 已有则移除
+        const existing = rowEl.querySelector('.inline-confirm');
+        if (existing) existing.remove();
+        const confirmEl = document.createElement('div');
+        confirmEl.className = 'inline-confirm mx-4 mb-3 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 flex items-center justify-between gap-3';
+        confirmEl.innerHTML = `
+          <div class="flex items-center gap-2 flex-1 min-w-0">
+            <svg class="h-4 w-4 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            </svg>
+            <span class="text-sm text-red-700 font-medium truncate">确认删除「${escapeHtml(username)}」？</span>
+          </div>
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <button onclick="collapseInlineConfirm('${recordId}')" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white text-gray-600 border border-gray-200 active:bg-gray-100">取消</button>
+            <button onclick="doDeleteAccount('${recordId}','${escapeHtml(username)}')" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-red-600 text-white active:bg-red-700">删除</button>
+          </div>`;
+        rowEl.appendChild(confirmEl);
+      }
+
+      function collapseInlineConfirm(recordId) {
+        if (pendingDeleteRowId === recordId) pendingDeleteRowId = null;
+        const rowEl = document.getElementById(`acc-row-${recordId}`);
+        if (!rowEl) return;
+        const existing = rowEl.querySelector('.inline-confirm');
+        if (existing) {
+          existing.style.opacity = '0';
+          existing.style.transition = 'opacity .15s';
+          setTimeout(() => existing.remove(), 150);
+        }
+      }
+      async function doDeleteAccount(recordId, username) {
+        collapseInlineConfirm(recordId);
+        try {
+          await accountApiClient.delete(`/record/${recordId}`);
+          const idx = accounts.findIndex(a => a.id === recordId);
+          if (idx !== -1) accounts.splice(idx, 1);
+          renderAccounts();
+          if (currentUser.role === '主账号') buildOperatorOptions();
+          showToast(`账号「${username}」已删除`, 'success');
+        } catch {
+          showToast('删除失败，请重试', 'error');
+        }
+      }
+      // ================================================================
+      // 子账号修改自己密码
+      // ================================================================
+      let subOldEyeOpen = false;
+      let subNewEyeOpen = false;
+      let subConfirmEyeOpen = false;
+
+      function toggleSubOldPwdEye() {
+        subOldEyeOpen = !subOldEyeOpen;
+        const inp = document.getElementById('sub-old-pwd');
+        const eye = document.getElementById('sub-old-eye');
+        inp.type = subOldEyeOpen ? 'text' : 'password';
+        eye.innerHTML = subOldEyeOpen ?
+          `<path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M3 3l18 18"/>` :
+          `<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>`;
+      }
+
+      function toggleSubNewPwdEye() {
+        subNewEyeOpen = !subNewEyeOpen;
+        const inp = document.getElementById('sub-new-pwd');
+        const eye = document.getElementById('sub-new-eye');
+        inp.type = subNewEyeOpen ? 'text' : 'password';
+        eye.innerHTML = subNewEyeOpen ?
+          `<path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M3 3l18 18"/>` :
+          `<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>`;
+      }
+
+      function toggleSubConfirmPwdEye() {
+        subConfirmEyeOpen = !subConfirmEyeOpen;
+        const inp = document.getElementById('sub-confirm-pwd');
+        const eye = document.getElementById('sub-confirm-eye');
+        inp.type = subConfirmEyeOpen ? 'text' : 'password';
+        eye.innerHTML = subConfirmEyeOpen ?
+          `<path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M3 3l18 18"/>` :
+          `<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>`;
+      }
+      async function handleSubChangePwd(e) {
+        e.preventDefault();
+        const oldPwd = document.getElementById('sub-old-pwd').value;
+        const newPwd = document.getElementById('sub-new-pwd').value.trim();
+        const confirmPwd = document.getElementById('sub-confirm-pwd').value.trim();
+        if (!oldPwd || !newPwd || !confirmPwd) {
+          showToast('请填写所有密码字段', 'warn');
+          return;
+        }
+        if (newPwd !== confirmPwd) {
+          showToast('两次输入的新密码不一致', 'warn');
+          return;
+        }
+        if (newPwd.length < 1) {
+          showToast('新密码不能为空', 'warn');
+          return;
+        }
+        // 先从服务器拉取当前账号信息验证旧密码
+        const btn = document.getElementById('sub-pwd-submit-btn');
+        const spinner = document.getElementById('sub-pwd-spinner');
+        const icon = document.getElementById('sub-pwd-icon');
+        const text = document.getElementById('sub-pwd-submit-text');
+        btn.disabled = true;
+        spinner.classList.remove('hidden');
+        icon.classList.add('hidden');
+        text.textContent = '验证中...';
+        try {
+          const respAll = await accountApiClient.get('/record?fieldKeyType=name&take=1000');
+          const allRecords = respAll.data.records || [];
+          const matched = allRecords.find(r => r.id === currentUser.id);
+          if (!matched) {
+            showToast('无法获取账号信息', 'error');
+            return;
+          }
+          const serverPwd = String(matched.fields['密码'] || '');
+          if (serverPwd !== oldPwd) {
+            showToast('当前密码不正确', 'error');
+            document.getElementById('sub-old-pwd').focus();
+            return;
+          }
+          text.textContent = '保存中...';
+          await accountApiClient.patch(`/record/${currentUser.id}`, {
+            fieldKeyType: 'name',
+            record: {
+              fields: {
+                '密码': newPwd
+              }
+            }
+          });
+          // 同步本地缓存
+          const localAcc = accounts.find(a => a.id === currentUser.id);
+          if (localAcc) localAcc.fields['密码'] = newPwd;
+          document.getElementById('sub-change-pwd-form').reset();
+          subOldEyeOpen = false;
+          subNewEyeOpen = false;
+          subConfirmEyeOpen = false;
+          ['sub-old-pwd', 'sub-new-pwd', 'sub-confirm-pwd'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.type = 'password';
+          });
+          showToast('密码修改成功，请牢记新密码', 'success');
+        } catch {
+          showToast('修改失败，请重试', 'error');
+        } finally {
+          btn.disabled = false;
+          spinner.classList.add('hidden');
+          icon.classList.remove('hidden');
+          text.textContent = '保存新密码';
+        }
+      }
+      // ================================================================
+      // 工具
+      // ================================================================
+      function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+      }
+      // ================================================================
+      // 启动
+      // ================================================================
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) stopQrAutoSync();
+        else if (currentUser) startQrAutoSync();
+      });
+      window.onload = () => {
+        selectLoginRole('主账号');
+        // 确保 pay-modal 初始完全隐藏
+        const payModal = document.getElementById('pay-modal');
+        payModal.classList.add('hidden');
+        payModal.style.setProperty('display', 'none', 'important');
+      };
+    </script>
+  </body>
+</html>
